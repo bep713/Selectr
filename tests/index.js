@@ -22,7 +22,9 @@
             { value: 'value-6', text: 'six' },
             { value: 'value-7', text: 'seven' },
             { value: 'value-8', text: 'eight' },
-            { value: 'value-9', text: 'nine' }
+            { value: 'value-19', text: 'nineteen' },
+            { value: 'value-9', text: 'nine' },
+            { value: 'value-6Dup', text: 'sixDuplicate', 'data-search-params': 'si' }
         ];
     }
 
@@ -192,8 +194,57 @@
                 "live search results are displayed in tree"
             );
 
-            selectr.__done__();
+            assert.deepEqual(
+                selectr.search('nine'),
+                [{value: "value-9", text: "nine"},{value: "value-19", text: "nineteen"}],
+                "brings exact matches to the top"
+            );
+
+            selectr.input.value = "nine";
+            selectr.search();
+
+            assert.ok(
+                selectr.tree.querySelector( 'li' ).textContent.trim() === "nine",
+                "brings exact matches to the top on the UI"
+            )
+
+            selectr.add({ text: 'matched on eigh', value: 'hi', 'data-search-params': ['eigh', 'test']});
+            assert.deepEqual(
+                selectr.search('eigh'),
+                [{value: "hi", text: "matched on eigh"},{value: "value-8", text: "eight"}],
+                "brings exact matches on the search params to the top"
+            );
+
+            selectr.input.value = 'si';
+            selectr.search();
+
+            assert.ok(
+                selectr.tree.querySelector( 'li' ).textContent.trim() === "sixDuplicate",
+                "brings exact matches on the search params to the top on the UI"
+            );
+
+            // selectr.__done__();
         });
+
+        QUnit.test('add()', function ( assert ) {
+            var selectr = newSelectr({defaultSelected: false});
+
+            selectr.add({ text: 'hello', value: 'hi' });
+            assert.deepEqual(
+                selectr.search('hello'),
+                [{ text: 'hello', value: 'hi' }],
+                "can add an element to the list"
+            );
+
+            selectr.add({ text: 'hello - there', value: 'hi', 'data-search-params': ['hello', 'there']});
+            assert.deepEqual(
+                selectr.search('hello - there'),
+                [{ text: 'hello - there', value: 'hi' }],
+                "can add an element to the list with search params"
+            );
+
+            selectr.__done__();
+        })
 
         // @todo tests for other public API methods:
         // add

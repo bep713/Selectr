@@ -202,6 +202,9 @@
             while (el.firstChild) {
                 el.removeChild(el.firstChild);
             }
+        },
+        textEquals: function(a, b) {
+            return a.toLowerCase() === b.toLowerCase();
         }
     };
 
@@ -214,15 +217,18 @@
      * Append an item to the list
      * @param  {Object} item
      * @param  {Object} custom
+     * @param  {boolean} appendFirst
      * @return {Void}
      */
-    function appendItem(item, parent, custom) {
+    function appendItem(item, parent, custom, appendFirst) {
+        var functionToUse = appendFirst ? parent.prepend : parent.appendChild;
+
         if (item.parentNode) {
             if (!item.parentNode.parentNode) {
-                parent.appendChild(item.parentNode);
+                functionToUse.apply(parent, [item.parentNode]);
             }
         } else {
-            parent.appendChild(item);
+            functionToUse.apply(parent, [item]);
         }
 
         util.removeClass(item, "excluded");
@@ -557,6 +563,11 @@
 
                         option.disabled = isset(data, "disabled");
 
+                        var searchParams = opt['data-search-params'];
+                        if (searchParams) {
+                            option['data-search-params'] = searchParams;
+                        }
+
                         this.options.push(option);
 
                         optgroup.appendChild(option);
@@ -575,6 +586,10 @@
                     option = new Option(opt.text, opt.value, false, opt.hasOwnProperty("selected") && opt.selected === true);
 
                     option.disabled = isset(opt, "disabled");
+                    var searchParams = opt['data-search-params'];
+                    if (searchParams) {
+                        option.setAttribute('data-search-params', searchParams);
+                    }
 
                     this.options.push(option);
 
@@ -2015,17 +2030,45 @@
 
             util.each( this.options, function ( i, option ) {
                 var item = this.items[option.idx];
-                var matches = compare( option.textContent.trim().toLowerCase().replace(/-|\s/g,""), string.replace(/-|\s/g,"") );
+                var compareText = option.textContent.trim().toLowerCase().replace(/-|\s/g,"");
+                var query = string.replace(/-|\s/g,"");
+                var matches = compare( compareText, query );
 
                 if ( matches && !option.disabled ) {
-                    results.push( { text: option.textContent, value: option.value } );
+
+                    // check if search query is an exact match
+                    var equals = util.textEquals( compareText, query );
+
+                    // if not an exact match and has specified search parameters,
+                    // check if any of them are exact matches.
+                    var searchParamsAttrib = option.getAttribute('data-search-params');
+                    if ( !equals && searchParamsAttrib ) {
+                        var searchParams = searchParamsAttrib.split(',');
+
+                        for ( var j = 0; j < searchParams.length; j++) {
+                            equals = util.textEquals( searchParams[j], query );
+                            
+                            if ( equals ) {
+                                break;
+                            }
+                        }
+                    }
+
+                    var itemToPush = { text: option.textContent, value: option.value };
+
+                    if (equals) {
+                        results.unshift( itemToPush );
+                    } else {
+                        results.push( itemToPush );
+                    }
+
                     if ( live ) {
-                        appendItem( item, f, this.customOption );
+                        appendItem( item, f, this.customOption, equals );
                         util.removeClass( item, "excluded" );
 
                         // Underline the matching results
                         if ( !this.customOption ) {
-                            match( string, option );
+                            match( string, item );
                         }
                     }
                 } else if ( live ) {
