@@ -692,7 +692,6 @@
 
         this.navigating = true;
 
-
         // Instead of wasting memory holding a copy of this.items
         // with disabled / excluded options omitted, skip them instead
         while (util.hasClass(this.items[this.navIndex], "disabled") || util.hasClass(this.items[this.navIndex], "excluded")) {

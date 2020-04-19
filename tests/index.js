@@ -363,8 +363,6 @@
                 selectr.close();
                 doKeypress( selectr.container, "Escape" );
                 assert.notOk( selectr.opened, subject + " does not open on [Esc]" );
-
-
             });
 
             // when focused and not multiple, typing should select first matching option
@@ -457,6 +455,80 @@
             multiSelectr2.__done__();
 
 
+        });
+
+        QUnit.test( "keyboard navigation event functionality", function ( assert ) {
+            function doKeypress( target, character ) {
+
+                // // phantomJS
+                // if ( typeof KeyboardEvent !== "function" ) {
+                //     ["keydown", "keypress", "keyup"].forEach( function (type) {
+                //         var event = document.createEvent( "CustomEvent" );
+                //         event.initCustomEvent( type, true, true );
+                //         event.which = character;
+                //         target.dispatchEvent( event );
+                //     });
+                //     return;
+                // }
+
+                // // modern browsers
+                // ["keydown", "keypress", "keyup"].forEach( function (type) {
+                //     target.dispatchEvent( new KeyboardEvent( type, { which: character } ) );
+                // });
+
+                var eventObj = document.createEventObject ?
+                    document.createEventObject() : document.createEvent("Events");
+            
+                if(eventObj.initEvent){
+                    eventObj.initEvent("keydown", true, true);
+                }
+            
+                eventObj.keyCode = character;
+                eventObj.which = character;
+                
+                target.dispatchEvent ? target.dispatchEvent(eventObj) : target.fireEvent("onkeydown", eventObj);
+            }
+
+            var oneSelectr = newSelectr({defaultSelected: false, nativeKeyboard: true});
+
+            oneSelectr.open();
+
+            assert.equal(
+                oneSelectr.tree.querySelector( 'li.active' ).textContent.trim(),
+                'zero',
+                'Selects the first element when opening the selector'
+            );
+
+            doKeypress( window, 40 );
+
+            assert.equal(
+                oneSelectr.tree.querySelector( 'li.active' ).textContent.trim(),
+                'one',
+                'Selects the next element when pressing the down arrow'
+            );
+
+            oneSelectr.close();
+
+            oneSelectr.input.value = 'si';
+            oneSelectr.search();
+
+            assert.equal(
+                oneSelectr.tree.querySelector( 'li.active' ).textContent.trim(),
+                'sixDuplicate',
+                'Selects the first element after a search'
+            );
+
+            oneSelectr.close();
+
+            oneSelectr.input.value = 'si';
+            oneSelectr.search();
+            doKeypress( window, 40 );
+
+            assert.equal(
+                oneSelectr.tree.querySelector( 'li.active' ).textContent.trim(),
+                'six',
+                'Selects the next item after a search that brought a result to the top'
+            );
         });
 
         // @todo tests for other constructor options/settings:
